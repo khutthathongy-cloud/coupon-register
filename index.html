@@ -166,23 +166,71 @@ preview.style.display="block";
 
 function extractAmount(text){
 
-const lines=text
-.split("\n")
-.map(line=>line.trim())
-.filter(line=>line.length);
+    const lines = text
+      .split("\n")
+      .map(line => line.trim())
+      .filter(line => line.length);
 
-for(const line of lines){
+    // ใบเสร็จกระดาษ + e-Receipt
+    for(const line of lines){
 
-const cashPattern=
-line.match(/(\d+\.\d{2})\s+0\.00/);
+        const lower = line.toLowerCase();
 
-if(cashPattern){
+        if(
+            lower.includes("ยอดสุทธิ") ||
+            lower.includes("รวมสุทธิ") ||
+            lower.includes("ยอดรวม")
+        ){
 
-return parseFloat(
-cashPattern[1]
-);
+            const nums =
+              line.match(/\d+\.\d{2}/g);
 
-}
+            if(nums){
+
+                return parseFloat(
+                    nums[nums.length - 1]
+                );
+            }
+        }
+    }
+
+    // เงินสด/เงินทอน
+    for(const line of lines){
+
+        const cash =
+          line.match(/(\d+\.\d{2})\s+0\.00/);
+
+        if(cash){
+
+            return parseFloat(cash[1]);
+        }
+    }
+
+    // True Wallet / 7App
+    for(const line of lines){
+
+        const lower =
+          line.toLowerCase();
+
+        if(
+            lower.includes("wallet") ||
+            lower.includes("ทรูวอลเล็ท") ||
+            lower.includes("7app")
+        ){
+
+            const nums =
+              line.match(/\d+\.\d{2}/g);
+
+            if(nums){
+
+                return parseFloat(
+                    nums[nums.length - 1]
+                );
+            }
+        }
+    }
+
+    return 0;
 }
 
 const keywords=[
@@ -279,11 +327,11 @@ canvas.getContext("2d");
 canvas.width=
 img.width;
 
-canvas.height=
-img.height*0.30;
+canvas.height =
+img.height * 0.60;
 
-const cropY=
-img.height*0.50;
+const cropY =
+img.height * 0.20;
 
 ctx.filter=
 "grayscale(100%) contrast(180%)";
