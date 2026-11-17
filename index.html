@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ลงทะเบียนรับคูปอง</title>
+
+<title>ลงทะเบียนรับสิทธิ์กระทงคัดสรรฟรี</title>
 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
 <style>
-
 *{
     margin:0;
     padding:0;
@@ -22,12 +22,12 @@ body{
 }
 
 .container{
-    max-width:420px;
+    max-width:430px;
     margin:auto;
-    background:#ffffff;
+    background:#fff;
     border-radius:20px;
     padding:20px;
-    box-shadow:0 4px 15px rgba(0,0,0,.08);
+    box-shadow:0 4px 20px rgba(0,0,0,0.08);
 }
 
 .title{
@@ -42,13 +42,13 @@ body{
     padding:15px;
     border-radius:12px;
     margin-bottom:20px;
-    line-height:1.6;
+    line-height:1.7;
 }
 
 label{
     display:block;
-    margin-bottom:8px;
     margin-top:15px;
+    margin-bottom:8px;
     font-weight:600;
 }
 
@@ -63,7 +63,7 @@ input{
 button{
     width:100%;
     margin-top:20px;
-    padding:14px;
+    padding:15px;
     border:none;
     border-radius:12px;
     background:#009846;
@@ -71,6 +71,18 @@ button{
     font-size:18px;
     font-weight:bold;
     cursor:pointer;
+}
+
+button:hover{
+    background:#00853d;
+}
+
+.loading{
+    margin-top:15px;
+    background:#dbeafe;
+    color:#1e40af;
+    padding:15px;
+    border-radius:12px;
 }
 
 .success{
@@ -91,29 +103,25 @@ button{
     line-height:1.8;
 }
 
-.loading{
-    margin-top:15px;
-    background:#dbeafe;
-    color:#1e40af;
-    padding:15px;
-    border-radius:12px;
+.small{
+    margin-top:10px;
+    font-size:12px;
+    opacity:0.8;
 }
-
 </style>
-</head>
 
+</head>
 <body>
 
 <div class="container">
 
     <div class="title">
-        <div style="font-size:32px">🎁</div>
+        <div style="font-size:30px;">🎁</div>
         <h2>ลงทะเบียนรับคูปอง</h2>
     </div>
 
     <div class="notice">
-        <strong>ซื้อสินค้าครบ 300 บาทขึ้นไป</strong>
-        <br>
+        <strong>ซื้อสินค้าครบ 300 บาทขึ้นไป</strong><br>
         พร้อมแนบรูปใบเสร็จเพื่อรับสิทธิ์
     </div>
 
@@ -135,7 +143,7 @@ button{
         id="receipt"
         accept="image/*">
 
-    <button onclick="checkBill()">
+    <button onclick="checkReceipt()">
         ตรวจสอบสิทธิ์
     </button>
 
@@ -145,64 +153,91 @@ button{
 
 <script>
 
-async function checkBill(){
+function extractAmount(text){
+
+    const lines = text.split("\n");
+
+    const keywords = [
+        "รวมสุทธิ",
+        "ยอดสุทธิ",
+        "ยอดรวม",
+        "grand total",
+        "total"
+    ];
+
+    for(const line of lines){
+
+        const lower = line.toLowerCase();
+
+        for(const keyword of keywords){
+
+            if(lower.includes(keyword.toLowerCase())){
+
+                const match =
+                    line.match(/(\d+\.\d{2})/);
+
+                if(match){
+
+                    return parseFloat(match[1]);
+                }
+            }
+        }
+    }
+
+    const numbers =
+        text.match(/[0-9]+(\.[0-9]{2})?/g);
+
+    if(!numbers) return 0;
+
+    const amounts =
+        numbers
+        .map(Number)
+        .filter(n => n < 10000);
+
+    return Math.max(...amounts);
+}
+
+async function checkReceipt(){
 
     const name =
-      document.getElementById("name").value.trim();
+        document.getElementById("name").value.trim();
 
     const phone =
-      document.getElementById("phone").value.trim();
+        document.getElementById("phone").value.trim();
 
-    const receipt =
-      document.getElementById("receipt").files[0];
+    const file =
+        document.getElementById("receipt").files[0];
 
     const result =
-      document.getElementById("result");
+        document.getElementById("result");
 
-    if(!name || !phone || !receipt){
+    if(!name || !phone || !file){
 
         result.innerHTML = `
         <div class="error">
-        ❌ กรุณากรอกข้อมูลและแนบใบเสร็จให้ครบถ้วน
+            ❌ กรุณากรอกข้อมูลและแนบใบเสร็จให้ครบถ้วน
         </div>`;
         return;
     }
 
     result.innerHTML = `
     <div class="loading">
-        ⏳ กำลังอ่านข้อมูลจากใบเสร็จ...
-        <br>
-        กรุณารอสักครู่
+        ⏳ กำลังตรวจสอบใบเสร็จ...
     </div>`;
 
     try{
 
         const {
-          data: { text }
+            data: { text }
         } = await Tesseract.recognize(
-            receipt,
-            'eng'
+            file,
+            "tha+eng"
         );
 
         console.log(text);
 
-        const matches =
-            text.match(/[0-9]+(\.[0-9]{2})?/g);
-
-        if(!matches){
-
-            result.innerHTML = `
-            <div class="error">
-                ❌ ไม่พบยอดเงินจากใบเสร็จ
-            </div>`;
-            return;
-        }
-
-        const amounts =
-            matches.map(Number);
-
         const amount =
-            Math.max(...amounts);
+            extractAmount(text);
 
         if(amount >= 300){
 
@@ -218,7 +253,7 @@ async function checkBill(){
                 <br>
 
                 <strong>
-                รับกระทงคัดสรรฟรี 1 ชุด
+                รับกระทงคัดสรรฟรี
                 </strong>
 
                 <br><br>
@@ -231,8 +266,7 @@ async function checkBill(){
 
                 <br>
 
-                💰 ยอดซื้อที่ตรวจพบ :
-                <strong>${amount} บาท</strong>
+                💰 ยอดซื้อ ${amount.toFixed(2)} บาท
 
             </div>`;
         }
@@ -249,9 +283,11 @@ async function checkBill(){
 
                 <br>
 
-                ตรวจพบยอด
+                ตรวจพบยอดซื้อ
 
-                <strong>${amount} บาท</strong>
+                <strong>
+                ${amount.toFixed(2)} บาท
+                </strong>
 
             </div>`;
         }
@@ -264,11 +300,11 @@ async function checkBill(){
         result.innerHTML = `
         <div class="error">
 
-            ❌ ไม่สามารถอ่านข้อมูลจากใบเสร็จได้
+            ❌ ไม่สามารถอ่านใบเสร็จได้
 
-            <br><br>
-
-            กรุณาถ่ายรูปให้ชัดเจนและลองใหม่อีกครั้ง
+            <div class="small">
+            กรุณาถ่ายภาพใบเสร็จให้ชัดและลองใหม่อีกครั้ง
+            </div>
 
         </div>`;
     }
