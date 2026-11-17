@@ -24,13 +24,13 @@ body{
 .container{
     max-width:430px;
     margin:auto;
-    background:#fff;
+    background:white;
     border-radius:20px;
     padding:20px;
-    box-shadow:0 4px 20px rgba(0,0,0,0.08);
+    box-shadow:0 4px 20px rgba(0,0,0,.08);
 }
 
-.title{
+.header{
     display:flex;
     align-items:center;
     gap:10px;
@@ -57,24 +57,19 @@ input{
     padding:12px;
     border:1px solid #d1d5db;
     border-radius:12px;
-    font-size:16px;
 }
 
 button{
     width:100%;
     margin-top:20px;
     padding:15px;
-    border:none;
-    border-radius:12px;
     background:#009846;
     color:white;
+    border:none;
+    border-radius:12px;
     font-size:18px;
     font-weight:bold;
     cursor:pointer;
-}
-
-button:hover{
-    background:#00853d;
 }
 
 .loading{
@@ -103,20 +98,26 @@ button:hover{
     line-height:1.8;
 }
 
-.small{
-    margin-top:10px;
+.debug{
+    margin-top:15px;
+    background:#f8fafc;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    padding:12px;
+    white-space:pre-wrap;
     font-size:12px;
-    opacity:0.8;
+    max-height:200px;
+    overflow:auto;
 }
 </style>
-
 </head>
+
 <body>
 
 <div class="container">
 
-    <div class="title">
-        <div style="font-size:30px;">🎁</div>
+    <div class="header">
+        <div style="font-size:30px">🎁</div>
         <h2>ลงทะเบียนรับคูปอง</h2>
     </div>
 
@@ -126,21 +127,15 @@ button:hover{
     </div>
 
     <label>ชื่อ-นามสกุล</label>
-    <input
-        type="text"
-        id="name"
-        placeholder="กรอกชื่อ-นามสกุล">
+    <input id="name" placeholder="กรอกชื่อ-นามสกุล">
 
     <label>เบอร์โทรศัพท์</label>
-    <input
-        type="tel"
-        id="phone"
-        placeholder="08x-xxx-xxxx">
+    <input id="phone" placeholder="08x-xxx-xxxx">
 
     <label>อัปโหลดใบเสร็จ</label>
     <input
-        type="file"
         id="receipt"
+        type="file"
         accept="image/*">
 
     <button onclick="checkReceipt()">
@@ -161,55 +156,56 @@ function extractAmount(text){
         "รวมสุทธิ",
         "ยอดสุทธิ",
         "ยอดรวม",
-        "grand total",
-        "total"
+        "รวมเงิน",
+        "เงินสด",
+        "total",
+        "grand total"
     ];
 
     for(const line of lines){
 
         const lower = line.toLowerCase();
 
-        for(const keyword of keywords){
+        const found =
+            keywords.some(word =>
+                lower.includes(word.toLowerCase())
+            );
 
-            if(lower.includes(keyword.toLowerCase())){
+        if(found){
 
-                const match =
-                    line.match(/(\d+\.\d{2})/);
+            const matches =
+                line.match(/\d+\.\d{2}/g);
 
-                if(match){
+            if(matches){
 
-                    return parseFloat(match[1]);
+                const value =
+                  parseFloat(
+                    matches[matches.length - 1]
+                  );
+
+                if(!isNaN(value)){
+                    return value;
                 }
             }
         }
     }
 
-    const numbers =
-        text.match(/[0-9]+(\.[0-9]{2})?/g);
-
-    if(!numbers) return 0;
-
-    const amounts =
-        numbers
-        .map(Number)
-        .filter(n => n < 10000);
-
-    return Math.max(...amounts);
+    return 0;
 }
 
 async function checkReceipt(){
 
     const name =
-        document.getElementById("name").value.trim();
+      document.getElementById("name").value.trim();
 
     const phone =
-        document.getElementById("phone").value.trim();
+      document.getElementById("phone").value.trim();
 
     const file =
-        document.getElementById("receipt").files[0];
+      document.getElementById("receipt").files[0];
 
     const result =
-        document.getElementById("result");
+      document.getElementById("result");
 
     if(!name || !phone || !file){
 
@@ -222,27 +218,61 @@ async function checkReceipt(){
 
     result.innerHTML = `
     <div class="loading">
-        ⏳ กำลังตรวจสอบใบเสร็จ...
+        ⏳ กำลังอ่านใบเสร็จ...
     </div>`;
 
-    try{
+    try {
 
-        const {
-            data: { text }
-        } = await Tesseract.recognize(
-            file,
-            "tha+eng"
-        );
+        const img = new Image();
 
-        console.log(text);
+        img.src = URL.createObjectURL(file);
 
-        const amount =
-            extractAmount(text);
+        img.onload = async () => {
 
-        if(amount >= 300){
+            const canvas =
+                document.createElement("canvas");
 
-            result.innerHTML = `
-            <div class="success">
+            const ctx =
+                canvas.getContext("2d");
+
+            canvas.width =
+                img.width;
+
+            canvas.height =
+                img.height * 0.5;
+
+            const cropY =
+                img.height * 0.35;
+
+            ctx.drawImage(
+                img,
+                0,
+                cropY,
+                img.width,
+                img.height * 0.5,
+                0,
+                0,
+                canvas.width,
+                canvas.height
+            );
+
+            const {
+                data:{ text }
+            }
+            = await Tesseract.recognize(
+                canvas,
+                "tha+eng"
+            );
+
+            console.log(text);
+
+            const amount =
+                extractAmount(text);
+
+            if(amount >= 300){
+
+                result.innerHTML = `
+                <div class="success">
 
                 🎉 <strong>ยินดีด้วย</strong>
 
@@ -266,14 +296,22 @@ async function checkReceipt(){
 
                 <br>
 
-                💰 ยอดซื้อ ${amount.toFixed(2)} บาท
+                💰 ยอดสุทธิ
+                <strong>${amount.toFixed(2)} บาท</strong>
 
-            </div>`;
-        }
-        else{
+                </div>
 
-            result.innerHTML = `
-            <div class="error">
+                <div class="debug">
+OCR อ่านได้:
+
+${text}
+                </div>
+                `;
+
+            }else{
+
+                result.innerHTML = `
+                <div class="error">
 
                 ❌ ขออภัย
 
@@ -283,14 +321,21 @@ async function checkReceipt(){
 
                 <br>
 
-                ตรวจพบยอดซื้อ
+                ตรวจพบยอดสุทธิ
 
-                <strong>
-                ${amount.toFixed(2)} บาท
-                </strong>
+                <strong>${amount.toFixed(2)} บาท</strong>
 
-            </div>`;
-        }
+                </div>
+
+                <div class="debug">
+OCR อ่านได้:
+
+${text}
+                </div>
+                `;
+            }
+
+        };
 
     }
     catch(error){
@@ -299,13 +344,7 @@ async function checkReceipt(){
 
         result.innerHTML = `
         <div class="error">
-
-            ❌ ไม่สามารถอ่านใบเสร็จได้
-
-            <div class="small">
-            กรุณาถ่ายภาพใบเสร็จให้ชัดและลองใหม่อีกครั้ง
-            </div>
-
+            ❌ ไม่สามารถอ่านข้อมูลใบเสร็จได้
         </div>`;
     }
 }
