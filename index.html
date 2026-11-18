@@ -25,9 +25,9 @@ padding:20px;
 .container{
 max-width:430px;
 margin:auto;
-background:white;
-border-radius:20px;
+background:#fff;
 padding:20px;
+border-radius:20px;
 box-shadow:0 4px 20px rgba(0,0,0,.08);
 }
 
@@ -42,15 +42,15 @@ margin-bottom:15px;
 background:#f3f4f6;
 padding:15px;
 border-radius:12px;
-margin-bottom:20px;
 line-height:1.7;
+margin-bottom:20px;
 }
 
 label{
 display:block;
+font-weight:600;
 margin-top:15px;
 margin-bottom:8px;
-font-weight:600;
 }
 
 input{
@@ -63,15 +63,22 @@ font-size:16px;
 
 button{
 width:100%;
-margin-top:20px;
 padding:15px;
+margin-top:20px;
 background:#009846;
-color:white;
+color:#fff;
 border:none;
 border-radius:12px;
 font-size:18px;
 font-weight:bold;
 cursor:pointer;
+}
+
+.preview{
+width:100%;
+margin-top:15px;
+border-radius:12px;
+display:none;
 }
 
 .loading{
@@ -100,14 +107,6 @@ border-radius:12px;
 line-height:1.8;
 }
 
-.preview{
-margin-top:15px;
-width:100%;
-border-radius:12px;
-display:none;
-border:1px solid #ddd;
-}
-
 </style>
 
 </head>
@@ -117,14 +116,14 @@ border:1px solid #ddd;
 <div class="container">
 
 <div class="header">
-<div style="font-size:30px">🎁</div>
+<div style="font-size:32px">🎁</div>
 <h2>ลงทะเบียนรับสิทธิ์กระทงคัดสรรฟรี</h2>
 </div>
 
 <div class="notice">
 <strong>เงื่อนไข</strong><br>
 ซื้อสินค้าครบ 300 บาทขึ้นไป<br>
-พร้อมแนบรูปใบเสร็จหรือ e-Receipt
+พร้อมแนบใบเสร็จหรือ e‑Receipt
 </div>
 
 <label>ชื่อ-นามสกุล</label>
@@ -173,8 +172,7 @@ const lines=text
 
 for(const line of lines){
 
-const lower =
-line.toLowerCase();
+const lower=line.toLowerCase();
 
 if(
 lower.includes("ยอดสุทธิ") ||
@@ -182,8 +180,7 @@ lower.includes("รวมสุทธิ") ||
 lower.includes("ยอดรวม")
 ){
 
-const nums =
-line.match(/\d+\.\d{2}/g);
+const nums=line.match(/\d+\.\d{2}/g);
 
 if(nums){
 
@@ -193,12 +190,44 @@ nums[nums.length-1]
 
 }
 }
+}
 
+for(let i=0;i<lines.length;i++){
+
+const line=lines[i];
+
+if(
+line.includes("ทรูวอลเล็ท") ||
+line.includes("7App") ||
+line.toLowerCase().includes("wallet")
+){
+
+const current=
+line.match(/\d+\.\d{2}/g);
+
+if(current){
+
+return parseFloat(
+current[current.length-1]
+);
+
+}
+
+const next=
+(lines[i+1] || "")
+.match(/\d+\.\d{2}/g);
+
+if(next){
+
+return parseFloat(next[0]);
+
+}
+}
 }
 
 for(const line of lines){
 
-const cash =
+const cash=
 line.match(
 /(\d+\.\d{2})\s+0\.00/
 );
@@ -210,31 +239,6 @@ cash[1]
 );
 
 }
-
-}
-
-for(const line of lines){
-
-const lower =
-line.toLowerCase();
-
-if(
-lower.includes("wallet") ||
-line.includes("ทรูวอลเล็ท") ||
-line.includes("7app")
-){
-
-const nums =
-line.match(/\d+\.\d{2}/g);
-
-if(nums){
-
-return parseFloat(
-nums[nums.length-1]
-);
-
-}
-}
 }
 
 return 0;
@@ -243,24 +247,24 @@ return 0;
 
 async function checkReceipt(){
 
-const result =
-document.getElementById("result");
-
-const name =
+const name=
 document.getElementById("name")
 .value.trim();
 
-const phone =
+const phone=
 document.getElementById("phone")
 .value.trim();
 
-const file =
+const file=
 document.getElementById("receipt")
 .files[0];
 
+const result=
+document.getElementById("result");
+
 if(!name || !phone || !file){
 
-result.innerHTML = `
+result.innerHTML=`
 <div class="error">
 ❌ กรุณากรอกข้อมูลให้ครบถ้วน
 </div>
@@ -270,38 +274,37 @@ return;
 
 }
 
-result.innerHTML = `
+result.innerHTML=`
 <div class="loading">
-⏳ กำลังตรวจสอบใบเสร็จ...
+⏳ กำลังอ่านใบเสร็จ...
 </div>
 `;
 
 try{
 
-const img =
-new Image();
+const img=new Image();
 
-img.src =
+img.src=
 URL.createObjectURL(file);
 
-img.onload = async ()=>{
+img.onload=async()=>{
 
-const canvas =
+const canvas=
 document.createElement("canvas");
 
-const ctx =
+const ctx=
 canvas.getContext("2d");
 
-canvas.width =
+canvas.width=
 img.width;
 
-canvas.height =
-img.height * 0.60;
+canvas.height=
+img.height * 0.80;
 
-const cropY =
-img.height * 0.20;
+const cropY=
+img.height * 0.10;
 
-ctx.filter =
+ctx.filter=
 "grayscale(100%) contrast(180%)";
 
 ctx.drawImage(
@@ -309,7 +312,7 @@ img,
 0,
 cropY,
 img.width,
-img.height * 0.60,
+img.height * 0.80,
 0,
 0,
 canvas.width,
@@ -325,14 +328,12 @@ canvas,
 "tha+eng"
 );
 
-console.log(text);
-
-const amount =
+const amount=
 extractAmount(text);
 
 if(amount >= 300){
 
-result.innerHTML = `
+result.innerHTML=`
 <div class="success">
 
 🎉 <b>ยินดีด้วย</b>
@@ -343,27 +344,21 @@ result.innerHTML = `
 
 <br>
 
-<b>รับกระทงคัดสรรฟรี</b>
+<b>
+รับกระทงคัดสรรฟรี
+</b>
 
 <br><br>
 
-👤 ${name}
-
-<br>
-
-📱 ${phone}
-
-<br>
-
-💰 ยอดสุทธิ ${amount.toFixed(2)} บาท
+💰 ยอดสุทธิ
+${amount.toFixed(2)} บาท
 
 </div>
 `;
 
-}
-else{
+}else{
 
-result.innerHTML = `
+result.innerHTML=`
 <div class="error">
 
 ❌ ขออภัย
@@ -374,7 +369,13 @@ result.innerHTML = `
 
 <br>
 
-ยอดสุทธิ ${amount.toFixed(2)} บาท
+ตรวจพบยอดสุทธิ
+
+<br>
+
+<b>
+${amount.toFixed(2)} บาท
+</b>
 
 </div>
 `;
@@ -387,7 +388,7 @@ result.innerHTML = `
 
 console.error(error);
 
-result.innerHTML = `
+result.innerHTML=`
 <div class="error">
 
 ❌ ไม่สามารถอ่านใบเสร็จได้
